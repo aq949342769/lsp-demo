@@ -1,25 +1,26 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
 import {
 	createConnection,
 	TextDocuments,
 	Diagnostic,
-	DiagnosticSeverity,
 	ProposedFeatures,
 	InitializeParams,
 	DidChangeConfigurationNotification,
-	CompletionItem,
-	CompletionItemKind,
-	TextDocumentPositionParams,
 	TextDocumentSyncKind,
-	InitializeResult
+	InitializeResult,
 } from 'vscode-languageserver/node';
 
 import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
+import { ComponentType, ProblemType } from './problemType';
+import { fileURLToPath } from 'url';
+import { checkJSX } from './checker/checkJSX';
+import { referencePropsChecker } from './checker/referencePropsChecker';
+import { regexChecker } from './checker/regexChecker';
+import { createProgram, forEachChild, ModuleKind, Node, ScriptTarget, SyntaxKind, TypeChecker } from 'typescript';
+import * as ts from 'typescript'
+import { generateDiagosticByNode } from './utils/diagnosticGenerator';
+
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -52,10 +53,10 @@ connection.onInitialize((params: InitializeParams) => {
 	const result: InitializeResult = {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
-			// Tell the client that this server supports code completion.
-			completionProvider: {
-				resolveProvider: true
-			}
+			// // Tell the client that this server supports code completion.
+			// completionProvider: {
+			// 	resolveProvider: true
+			// }
 		}
 	};
 	if (hasWorkspaceFolderCapability) {
@@ -81,7 +82,7 @@ connection.onInitialized(() => {
 });
 
 // The example settings
-interface ExampleSettings {
+export interface ExampleSettings {
 	maxNumberOfProblems: number;
 }
 
@@ -137,94 +138,81 @@ documents.onDidChangeContent(change => {
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	// In this simple example we get the settings for every validate run.
 	const settings = await getDocumentSettings(textDocument.uri);
-
-	// The validator creates diagnostics for all uppercase words length 2 and more
-	const text = textDocument.getText();
-	const pattern = /\b[A-Z]{2,}\b/g;
-	let m: RegExpExecArray | null;
-
-	let problems = 0;
+	/** 诊断收集 */
 	const diagnostics: Diagnostic[] = [];
-	while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
-		problems++;
-		const diagnostic: Diagnostic = {
-			severity: DiagnosticSeverity.Warning,
-			range: {
-				start: textDocument.positionAt(m.index),
-				end: textDocument.positionAt(m.index + m[0].length)
-			},
-			message: `${m[0]} is all uppercase.`,
-			source: 'ex'
-		};
-		if (hasDiagnosticRelatedInformationCapability) {
-			diagnostic.relatedInformation = [
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range)
-					},
-					message: 'Spelling matters'
-				},
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range)
-					},
-					message: 'Particularly for names'
-				}
-			];
-		}
-		diagnostics.push(diagnostic);
-	}
 
-	// Send the computed diagnostics to VSCode.
+	let program = createProgram([
+		fileURLToPath(textDocument.uri),
+		fileURLToPath('file:///Users/xiaoyidao/lunwen/my-app/src/type.d.ts'
+		)
+	], { target: ScriptTarget.ES2015, module: ModuleKind.CommonJS })
+	let checker = program.getTypeChecker()
+
+	const fileList = program.getSourceFiles()
+	for (const file of fileList) {
+		if (!file.isDeclarationFile) {
+			/** 收集调用表达式，如 memo(foo), 那么 foo 函数的签名放入 set */
+			const callSet = new Set<string>()
+			forEachChild(file, (node) => visit(node, callSet))
+		}
+	}
+	function visit(node: Node, callSet: Set<string>) {
+		const childrens = node.getChildren();
+		if (childrens.length === 0) {
+			return;
+		} else {
+			// 收集被调用的函数名
+			if (node.kind === SyntaxKind.CallExpression) {
+				const funcName = /memo\((\w+)\)/g.exec(node.getFullText())?.[1]
+				funcName && callSet.add(funcName)
+			}
+			// 判断组件的警告
+			if (ComponentType.includes(node.kind)) {
+				if (checkJSX(node)) {
+					const d = referencePropsChecker(node, checker)
+					diagnostics.push(...d)
+
+					const dd = generateMemoDiag(node, callSet)
+					diagnostics.push(...dd);
+
+
+					/** 判断函数组件有无用 memo 包裹 */
+					function generateMemoDiag(node: Node, callSet: Set<string>) {
+						console.log(SyntaxKind[node.kind]);
+						
+						if(node.kind === SyntaxKind.ClassDeclaration) {
+							return [];
+						}
+						const parentKind = node.parent.kind
+						const parentSignature = node.parent.getFullText();
+						const type = ['React.memo', 'memo'];
+						const isCallByMemo = parentKind === SyntaxKind.CallExpression && type.includes(parentSignature);
+						const isCallByContext = callSet.has(node.getFullText());
+						if(!isCallByMemo && !isCallByContext) {
+							return [generateDiagosticByNode(node, ProblemType.NO_MEMO_COMPONENTS)]
+						}
+						return []
+					}
+				}
+			}
+
+		
+			childrens.forEach(node => visit(node, callSet))
+		}
+	}
+	diagnostics.push(...regexChecker(textDocument, settings));
+
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+
 }
+
 
 connection.onDidChangeWatchedFiles(_change => {
 	// Monitored files have change in VSCode
 	connection.console.log('We received an file change event');
 });
 
-// This handler provides the initial list of the completion items.
-connection.onCompletion(
-	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
-		// The pass parameter contains the position of the text document in
-		// which code complete got requested. For the example we ignore this
-		// info and always provide the same completion items.
-		return [
-			{
-				label: 'TypeScript',
-				kind: CompletionItemKind.Text,
-				data: 1
-			},
-			{
-				label: 'JavaScript',
-				kind: CompletionItemKind.Text,
-				data: 2
-			}
-		];
-	}
-);
-
-// This handler resolves additional information for the item selected in
-// the completion list.
-connection.onCompletionResolve(
-	(item: CompletionItem): CompletionItem => {
-		if (item.data === 1) {
-			item.detail = 'TypeScript details';
-			item.documentation = 'TypeScript documentation';
-		} else if (item.data === 2) {
-			item.detail = 'JavaScript details';
-			item.documentation = 'JavaScript documentation';
-		}
-		return item;
-	}
-);
-
-// Make the text document manager listen on the connection
-// for open, change and close text document events
+// 绑定文档对象和 lsp connector
 documents.listen(connection);
 
-// Listen on the connection
 connection.listen();
