@@ -53,7 +53,7 @@ export const ProblemObj: {[key: string]: problem} = {
 	},
 	[ProblemType.HAVING_REF_PROPS]: {
 		severity: DiagnosticSeverity.Warning,
-		msg: "",
+		msg: "props 中包含引用类型，使用 useMemo/useCallback 包裹可以避免重渲染",
 		type: ProblemType.HAVING_REF_PROPS,
 	}
 }
