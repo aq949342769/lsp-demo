@@ -17,29 +17,23 @@ const documentSettings: Map<string, Thenable<ExampleSettings>> = new Map();
 
 
 export class DocumentManager {
-	private _documents: TextDocuments<TextDocument>  
-	private astParser: AstParser | null = null
+	private _documents = new TextDocuments(TextDocument);
+	private astParser = new AstParser()
 	constructor(private _connManager: ConnectionManager) {
-		this._documents = new TextDocuments(TextDocument);
 		this.init()
 	}
 	get documents() {
 		return this._documents;
 	}
 	private init() {
-		this.bind()
-		this.initAstParser();
+		this.bindEvent()
 		// 绑定文档对象和 lsp connector
 		this._documents.listen(this._connManager.connection);
 	}
-	initAstParser() {
-		if(this.astParser) {
-			return this.astParser
-		}
-		this.astParser = new AstParser()
-	}
-	private bind() {	
+
+	private bindEvent() {	
 		this.handleDidClose()
+		// TODO: 有 bug，node 不能获取 parent
 		// this.handleDidChange()
 	}
 
@@ -50,8 +44,8 @@ export class DocumentManager {
 	}
 
 	private async handleDidChange() {
-		this._documents.onDidChangeContent(async change => {
-			const diagnostics = await this.astParser?.parser(change.document)
+		this._documents.onDidChangeContent(change => {
+			const diagnostics = this.astParser.parser(change.document)
 			diagnostics && 
 			this._connManager.connection.sendDiagnostics({ uri: change.document.uri, diagnostics })
 		});

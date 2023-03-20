@@ -58,13 +58,5 @@ export const ProblemObj: {[key: string]: problem} = {
 	}
 }
 
-/** react 组件类型的语法类型 */
-export const ComponentType = [
-	ts.SyntaxKind.FunctionDeclaration,
-	ts.SyntaxKind.FunctionExpression,
-	ts.SyntaxKind.ClassDeclaration,
-	ts.SyntaxKind.ArrowFunction,
-]
 
 
-export const BASETYPE = ['string', 'number', 'boolean', 'undefined', 'null', 'symbol'];

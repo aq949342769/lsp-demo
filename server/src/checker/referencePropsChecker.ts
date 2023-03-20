@@ -1,7 +1,8 @@
-import ts = require('typescript');
+import * as ts from 'typescript'
 import { Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver';
 import { Checker } from '../modules/Checker';
-import { BASETYPE, ProblemType } from '../problemType';
+import { ProblemType } from '../problemType';
+import { BASETYPE } from '../utils/const';
 import { generateDiagosticByNode } from '../utils/diagnosticGenerator';
 
 // export class ReferencePropsChecker extends Checker {
@@ -57,7 +58,7 @@ export function referencePropsChecker(node: ts.Node, checker: ts.TypeChecker) {
 		}
 		if (node.kind === ts.SyntaxKind.TypeReference) {
 			const type = checker.getTypeAtLocation(node)
-			const typestr = checker.typeToString(type);
+			// const typestr = checker.typeToString(type);
 			type.getSymbol()?.members?.forEach(m => {
 				const n = m.declarations?.[0]
 				if (!n || o.hasDiagnostic) {
@@ -65,6 +66,7 @@ export function referencePropsChecker(node: ts.Node, checker: ts.TypeChecker) {
 				}
 				const mtype = checker.getTypeOfSymbolAtLocation(m, n)
 				const mtypeStr = checker.typeToString(mtype)
+				// 如果类型不是基本类型，生成诊断
 				if (!BASETYPE.includes(mtypeStr)) {
 					if (!o.hasDiagnostic) {
 						o.diagnostic.push(generateDiagosticByNode(node, ProblemType.HAVING_REF_PROPS))

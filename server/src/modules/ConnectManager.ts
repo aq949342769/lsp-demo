@@ -23,11 +23,11 @@ export class ConnectionManager {
 	}
 
 	private init() {
-		this.bind()
+		this.bindEvent()
 		this._connection.listen();
 	}
 
-	private	bind() {
+	private	bindEvent() {
 		this.handleInitialize()
 		this.handleInitialized()
 		this.handleDidChangeWatchedFiles()
