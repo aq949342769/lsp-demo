@@ -3,6 +3,7 @@ import { DiagnosticSeverity } from 'vscode-languageserver'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { diagnosticFactory } from './utils/problemCheck'
 
+
 export enum ProblemType {
 	/** 没有用 pureComponent 包裹 */
 	NO_PURE_COMPONENTS,
@@ -10,6 +11,12 @@ export enum ProblemType {
 	NO_MEMO_COMPONENTS,
 	/** props 中含有引用类型，而没有用 useMemo/useCallback 包裹 */
 	HAVING_REF_PROPS,
+	/** 使用按需加载 */
+	LAZY_IMPORT,
+	/** 事件处理器可能需要防抖节流 */
+	SHOULD_DEBOUNCE,
+	/** 异步任务中使用 setState */
+	ASYNC_TASK_STATE_CHANGE
 }
 interface problem {
 	severity: DiagnosticSeverity,
@@ -55,6 +62,21 @@ export const ProblemObj: {[key: string]: problem} = {
 		severity: DiagnosticSeverity.Warning,
 		msg: "props 中包含引用类型，使用 useMemo/useCallback 包裹可以避免重渲染",
 		type: ProblemType.HAVING_REF_PROPS,
+	},
+	[ProblemType.LAZY_IMPORT]: {
+		severity: DiagnosticSeverity.Warning,
+		msg: "改组件可以使用 React.lazy 等懒加载策略",
+		type: ProblemType.LAZY_IMPORT
+	},
+	[ProblemType.SHOULD_DEBOUNCE]: {
+		severity: DiagnosticSeverity.Warning,
+		msg: "该事件回调需要使用防抖节流等措施",
+		type: ProblemType.SHOULD_DEBOUNCE,
+	},
+	[ProblemType.ASYNC_TASK_STATE_CHANGE]: {
+		severity: DiagnosticSeverity.Warning,
+		msg: '在 react18 之前如果在异步任务中使用 setState 方法会造成组件多次渲染',
+		type: ProblemType.ASYNC_TASK_STATE_CHANGE
 	}
 }
 

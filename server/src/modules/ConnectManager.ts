@@ -35,7 +35,6 @@ export class ConnectionManager {
 
 	private handleDidChangeWatchedFiles() {
 		this._connection.onDidChangeWatchedFiles(_change => {
-			// Monitored files have change in VSCode
 			this._connection.console.log('We received an file change event');
 		});
 	}
@@ -43,7 +42,6 @@ export class ConnectionManager {
   private	handleInitialized() {
 		this._connection.onInitialized(() => {
 			if (this._hasConfigurationCapability) {
-				// Register for all configuration changes.
 				this._connection.client.register(DidChangeConfigurationNotification.type, undefined);
 			}
 			if (this._hasWorkspaceFolderCapability) {
@@ -58,8 +56,6 @@ export class ConnectionManager {
 		this._connection.onInitialize((params: InitializeParams) => {
 			const capabilities = params.capabilities;
 
-			// Does the client support the `workspace/configuration` request?
-			// If not, we fall back using global settings.
 			this._hasConfigurationCapability = !!(
 				capabilities.workspace && !!capabilities.workspace.configuration
 			);

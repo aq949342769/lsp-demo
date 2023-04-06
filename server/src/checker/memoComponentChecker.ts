@@ -2,7 +2,7 @@ import * as ts from 'typescript';
 import { ProblemType } from '../problemType';
 import { generateDiagosticByNode } from '../utils/diagnosticGenerator';
 
-/** 判断函数组件有无用 memo 包裹 */
+/** 判断函数组件有无用 React.memo 包裹 */
 export function memoComponentChecker(node: ts.Node, callSet: Set<string>) {
 	if (ts.isClassDeclaration(node)) {
 		return [];

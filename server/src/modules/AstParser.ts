@@ -1,74 +1,39 @@
-import { createCompilerHost, createProgram, forEachChild, ModuleKind, Node, Program, ScriptTarget, SyntaxKind } from 'typescript';
-import { fileURLToPath } from 'url';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { Diagnostic } from 'vscode-languageserver/node';
-import { memoComponentChecker } from '../checker/memoComponentChecker';
-import { referencePropsChecker } from '../checker/referencePropsChecker';
-import { regexChecker } from '../checker/regexChecker';
+import * as ts from 'typescript'
 import { isComponentNode } from '../utils/common';
-
-export class AstParser {
-	private _program: Program | null = null;
-	/** 诊断收集 */
-	private diagnostics: Diagnostic[] = [];
-
-	get typechecker() {
-		return this._program?.getTypeChecker()
+class AstParser {
+	componentsNodeSet = new Set<ts.Node>();
+	typeLiteraleNodeSet = new Set<ts.Node>();
+	typeReferenceNodeSet = new Set<ts.Node>();
+	constructor(file: ts.SourceFile) {
+		this.init(file)
 	}
-	getProgram(uri: string) {
-		const compileOptions = { target: ScriptTarget.ES2015, module: ModuleKind.CommonJS }
-		// const compileHost = createCompilerHost(compileOptions, true)
-		const exampleUrl = [
-			fileURLToPath(uri),
-			fileURLToPath('file:///Users/xiaoyidao/lunwen/my-app/src/type.d.ts'),
-		]
-		// if (!this._program) {
-			return createProgram(exampleUrl, compileOptions)
-		// }
-		// 复用 program
-		// return createProgram(exampleUrl, compileOptions, undefined, this._program)
+	private init(file: ts.SourceFile) {
+		ts.forEachChild(file, (node) => this.parse(node))
 	}
-	parser(textDocument: TextDocument) {
-		const program = this.getProgram(textDocument.uri)
+	private parseComponentNode(node: ts.Node) {
+		const childrens = node.getChildren()
+		if(childrens.length === 0) {
+			return
+		}	
 
-		const fileList = program?.getSourceFiles()
-		if (!fileList) {
-			throw new Error('no fileList')
+		if(ts.isTypeLiteralNode(node)) {
+			this.typeLiteraleNodeSet.add(node)
 		}
-		for (const file of fileList) {
-			if (!file.isDeclarationFile) {
-				/** 收集调用表达式，如 memo(foo), 那么 foo 函数的签名放入 set */
-				const callSet = new Set<string>()
-				forEachChild(file, (node) => visit(node, this, callSet))
-			}
+		if(ts.isTypeReferenceNode(node)) {
+			this.typeReferenceNodeSet.add(node)
 		}
-		function visit(node: Node, ref: AstParser, callSet: Set<string>) {
-			const childrens = node.getChildren();
-			if (childrens.length === 0) {
-				return;
-			} else {
-				// 收集被调用的函数名
-				if (node.kind === SyntaxKind.CallExpression) {
-					const funcName = /memo\((\w+)\)/g.exec(node.getFullText())?.[1]
-					funcName && callSet.add(funcName)
-				}
-				// 判断组件的警告
-				if (isComponentNode(node)) {
-					const d = referencePropsChecker(node, ref.typechecker!)
-					ref.diagnostics.push(...d)
-					const dd = memoComponentChecker(node, callSet)
-					ref.diagnostics.push(...dd);
-				}
-	
-				childrens.forEach(node => visit(node, ref, callSet))
-			}
+		childrens.forEach(this.parseComponentNode)
+	}
+	private parse(node: ts.Node) {
+		const childrens = node.getChildren()
+		if(childrens.length === 0) {
+			return
 		}
-		this.diagnostics.push(...regexChecker(textDocument));
-		return this.handleDiagnostics()
+		if(isComponentNode(node)) {
+			this.componentsNodeSet.add(node)
+			this.parseComponentNode(node)
+		}
+		childrens.forEach(this.parse)
 	}
-
-  handleDiagnostics() {
-		return this.diagnostics; 
-	}
-
 }
+

@@ -1,6 +1,5 @@
 import * as ts from 'typescript'
-import { Diagnostic, DiagnosticSeverity, Position } from 'vscode-languageserver';
-import { Checker } from '../modules/Checker';
+import { Diagnostic } from 'vscode-languageserver';
 import { ProblemType } from '../problemType';
 import { BASETYPE } from '../utils/const';
 import { generateDiagosticByNode } from '../utils/diagnosticGenerator';
@@ -43,15 +42,18 @@ import { generateDiagosticByNode } from '../utils/diagnosticGenerator';
 // 		return o.diagnostic
 // 	}
 // }
-/** 生成 props 引用类型的诊断 */
-export function referencePropsChecker(node: ts.Node, checker: ts.TypeChecker) {
+/** 判断 props 中是否含有引用类型 */
+export function referencePropsChecker(node: ts.Node, checker: ts.TypeChecker | undefined) {
 	/** 递归标记 */
 	const o = {
 		hasDiagnostic: false,
 		diagnostic: [] as Diagnostic[],
 	}
-	recursion(o, node)
-	function recursion(o: any, node: ts.Node) {
+	if(!checker) {
+		return o.diagnostic
+	}
+	recursion(o, node, checker)
+	function recursion(o: any, node: ts.Node, checker: ts.TypeChecker) {
 		const children = node.getChildren();
 		if (children.length === 0) {
 			return
@@ -76,7 +78,7 @@ export function referencePropsChecker(node: ts.Node, checker: ts.TypeChecker) {
 			})
 		}
 		// 如果已经生成诊断，则不再继续递归了
-		!o.hasDiagnostic && children.forEach(ch => recursion(o, ch))
+		!o.hasDiagnostic && children.forEach(ch => recursion(o, ch, checker))
 	}
 
 	return o.diagnostic

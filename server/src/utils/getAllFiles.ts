@@ -27,7 +27,5 @@ const deepLoopTraversal = (directory: string, filePathArr: any[]) => {
 export const getAllFiles = (path: string) => {
 	const filePathArr: Array<string> = []
 	deepLoopTraversal(path, filePathArr)
-	console.log(`您指定的目录下，是 .js 或 .ts 文件，有以下内容：`)
-	console.log(filePathArr)
 	return filePathArr;
 }

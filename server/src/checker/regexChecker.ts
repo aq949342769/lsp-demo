@@ -4,8 +4,9 @@ import { ProblemObj, ProblemType } from '../problemType';
 /**
  * 通过正则匹配，检查错误
  * 如果需要正则判断，在定义 problemObj 对应的 problemType 的时候要提供正则表达式和对应的 checker
+ * 
  * 目前支持：
- * 1、pureComponent
+ * 1. pureComponent
  */
 export function regexChecker(textDocument: TextDocument) {
 	const diagnostics: Diagnostic[] = []
