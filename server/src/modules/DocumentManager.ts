@@ -1,6 +1,6 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { TextDocuments } from 'vscode-languageserver/node';
-import { AstParser } from './AstParser.deprecate';
+// import { AstParser } from './AstParser.deprecate';
 import type { ConnectionManager } from './ConnectManager';
 export interface ExampleSettings {
 	maxNumberOfProblems: number;
@@ -15,7 +15,7 @@ const documentSettings: Map<string, Thenable<ExampleSettings>> = new Map();
 
 export class DocumentManager {
 	private _documents = new TextDocuments(TextDocument);
-	private astParser = new AstParser()
+	// private astParser = new AstParser()
 	constructor(private _connManager: ConnectionManager) {
 		this.init()
 	}
@@ -40,13 +40,13 @@ export class DocumentManager {
 		});
 	}
 
-	private async handleDidChange() {
-		this._documents.onDidChangeContent(change => {
-			const diagnostics = this.astParser.parser(change.document)
-			diagnostics && 
-			this._connManager.connection.sendDiagnostics({ uri: change.document.uri, diagnostics })
-		});
-	}
+	// private async handleDidChange() {
+	// 	this._documents.onDidChangeContent(change => {
+	// 		const diagnostics = this.astParser.parser(change.document)
+	// 		diagnostics && 
+	// 		this._connManager.connection.sendDiagnostics({ uri: change.document.uri, diagnostics })
+	// 	});
+	// }
 }
 
 

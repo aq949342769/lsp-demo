@@ -13,8 +13,6 @@ import { memoComponentChecker } from './checker/memoComponentChecker';
 import { ConnectionManager } from './modules/ConnectManager';
 import { DocumentManager } from './modules/DocumentManager';
 import { isComponentNode } from './utils/common';
-import { generateDiagosticByNode } from './utils/diagnosticGenerator';
-import { ProblemType } from './problemType';
 import { ProgramManager } from './modules/ProgramManager';
 import { lazyComponentChecker } from './checker/lazyComponentChecker';
 import { eventHandlerChecker } from './checker/eventHandlerChecker';
