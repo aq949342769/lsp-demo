@@ -1,7 +1,8 @@
-import ts = require('typescript')
 import { DiagnosticSeverity } from 'vscode-languageserver'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { diagnosticFactory } from './utils/problemCheck'
+
+
 
 
 export enum ProblemType {
@@ -16,7 +17,11 @@ export enum ProblemType {
 	/** 事件处理器可能需要防抖节流 */
 	SHOULD_DEBOUNCE,
 	/** 异步任务中使用 setState */
-	ASYNC_TASK_STATE_CHANGE
+	ASYNC_TASK_STATE_CHANGE,
+	/** 没有按需使用 hook 返回的对象 */
+	ON_DEMAND_HOOK,
+	/** 请使用 context 跳过中间组件的更新 */
+	CONTEXT_COMPONENT
 }
 interface problem {
 	severity: DiagnosticSeverity,
@@ -44,7 +49,7 @@ export const ProblemObj: {[key: string]: problem} = {
 	},
 	[ProblemType.NO_MEMO_COMPONENTS]: {
 		severity: DiagnosticSeverity.Warning,
-		msg: "使用`React.memo`对函数组件进行包裹，从而可以对 props 进行浅层比较，减少不必要的重渲染",
+		msg: "使用`React.memo`对函数组件进行包裹，从而可以对 props 进行浅层比较，减少不必要的重渲染\n或者可以使用 useMemo 对组件进行简单的包裹，但依赖发生变化的时候再决定是否更新组件",
 		type: ProblemType.NO_MEMO_COMPONENTS,
 		accessible: ['React.memo', 'memo'],
 		/**
@@ -77,7 +82,17 @@ export const ProblemObj: {[key: string]: problem} = {
 		severity: DiagnosticSeverity.Warning,
 		msg: '在 react18 之前如果在异步任务中使用 setState 方法会造成组件多次渲染',
 		type: ProblemType.ASYNC_TASK_STATE_CHANGE
-	}
+	},
+	[ProblemType.ON_DEMAND_HOOK]: {
+		severity: DiagnosticSeverity.Warning,
+		msg: '没有完全使用该 hook 的返回值，hook 按需更新请参考：https://codesandbox.io/s/hooks-anxugengxin-tinzp?file=/src/hooks.js:420-463',
+		type: ProblemType.ON_DEMAND_HOOK
+	},
+	[ProblemType.CONTEXT_COMPONENT]: {
+		severity: DiagnosticSeverity.Warning,
+		msg: '请使用 context、redux 等状态管理工具以跳过非必要的中间组件的重渲染',
+		type: ProblemType.CONTEXT_COMPONENT
+	},
 }
 
 

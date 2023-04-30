@@ -12,7 +12,7 @@ export function lazyComponentChecker(node: ts.ImportClause, checker: ts.TypeChec
 	if (node.name) {
 		const type = checker!.getTypeAtLocation(node)
 		const typestr = checker!.typeToString(type)
-		if (typestr.includes('props')) {
+		if (typestr.includes('props') || typestr.includes('Element')) {
 			diagnostics.push(generateDiagosticByNode(node, ProblemType.LAZY_IMPORT))
 		}
 	}

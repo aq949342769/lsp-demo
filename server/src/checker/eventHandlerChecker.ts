@@ -7,7 +7,9 @@ import { generateDiagosticByNode } from '../utils/diagnosticGenerator'
 export function eventHandlerChecker(node: ts.Node) {
 	const HANDLER = new Set(['onClick', 'onChange', 'onScroll'])
 	const diagnostic: Diagnostic[] = []
-	if(ts.isJsxAttribute(node) && ts.isIdentifier(node.name) && HANDLER.has(node.name.getText())) {
+	if (ts.isJsxAttribute(node) &&
+		ts.isIdentifier(node.name) &&
+		HANDLER.has(node.name.getText())) {
 		diagnostic.push(generateDiagosticByNode(node, ProblemType.SHOULD_DEBOUNCE))
 	}
 	return diagnostic
