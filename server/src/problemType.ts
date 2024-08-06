@@ -70,7 +70,7 @@ export const ProblemObj: {[key: string]: problem} = {
 	},
 	[ProblemType.LAZY_IMPORT]: {
 		severity: DiagnosticSeverity.Warning,
-		msg: "改组件可以使用 React.lazy 等懒加载策略",
+		msg: "该组件可以使用 React.lazy 等懒加载策略",
 		type: ProblemType.LAZY_IMPORT
 	},
 	[ProblemType.SHOULD_DEBOUNCE]: {

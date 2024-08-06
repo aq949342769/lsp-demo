@@ -39,14 +39,6 @@ export class DocumentManager {
 			documentSettings.delete(e.document.uri);
 		});
 	}
-
-	// private async handleDidChange() {
-	// 	this._documents.onDidChangeContent(change => {
-	// 		const diagnostics = this.astParser.parser(change.document)
-	// 		diagnostics && 
-	// 		this._connManager.connection.sendDiagnostics({ uri: change.document.uri, diagnostics })
-	// 	});
-	// }
 }
 
 
